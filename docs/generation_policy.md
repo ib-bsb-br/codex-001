@@ -1,0 +1,8 @@
+- [DOC] Enforce the documented Passenger layout by placing `passenger_wsgi.py`, `fstore_app/`, and `fs_client.py` under `public_html/`, and verify `application` imports without running `app.run()`.
+- [DOC] Keep all endpoints public by stripping authentication hooks, credential files, and token flows from both server and CLI artifacts.
+- [DOC] Preserve UX parity—drag-and-drop uploads, autosave banners, context menu actions, and CLI command set—when modifying templates or scripts.
+- [DOC] Reject unsafe filenames (`..`, `/`, `\\`, empty) before filesystem access, returning `400/403/404` responses consistent with documented semantics.
+- [DOC] Package dependencies minimally by limiting `requirements.txt` to `Flask>=2.2,<3.0` and removing unused auth libraries.
+- [FA] Resolve instruction conflicts by prioritizing documentation over approach notes, mirroring chat outputs if parallel artifacts are produced.
+- [FA] Maintain exactly the specified sectioning and chat-surface primacy when summarizing or exporting procedural content.
+- [SA] When documentation is silent, reuse second-approach deployment guidance (DirectAdmin Python Selector configuration, data directory permissions) before consulting third-approach material.
