@@ -46,7 +46,7 @@ def download(remote: str, local: Optional[str]) -> None:
 def upload(local: str, remote: Optional[str]) -> None:
     remote = remote or os.path.basename(local)
     with open(local, 'rb') as handle:
-        res = SESSION.post(api('/api/files/upload'), files={'file': (remote, handle)})
+        res = SESSION.post(api('/api/files/upload'), files={'file': (remote, handle)}, timeout=30)
     res.raise_for_status()
     name = res.json().get('name', remote)
     print(f"Uploaded as {name}")
