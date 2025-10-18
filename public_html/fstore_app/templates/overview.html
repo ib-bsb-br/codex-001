@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FStore Overview</title>
+    <style>
+        body { font-family: sans-serif; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        #drop-zone { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 20px; }
+        #drop-zone.dragover { background-color: #e8f0fe; }
+        .context-menu { display: none; position: absolute; background-color: #f9f9f9; border: 1px solid #ccc; z-index: 1000; }
+        .context-menu ul { list-style: none; padding: 5px 0; margin: 0; }
+        .context-menu ul li { padding: 8px 12px; cursor: pointer; }
+        .context-menu ul li:hover { background-color: #f1f1f1; }
+    </style>
+</head>
+<body>
+    <h1>FStore File Overview</h1>
+
+    <div id="drop-zone">
+        Drag and drop files here to upload, or
+        <form id="upload-form" enctype="multipart/form-data" style="display: inline;">
+            <input type="file" name="file" id="file-input" multiple>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+    <table id="files-table">
+        <thead>
+            <tr>
+                <th>Filename</th>
+                <th>Last Modified</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr data-filename="{{ file.name }}">
+                <td><a href="{{ url_for('download_file', fn=file.name) }}">{{ file.name }}</a></td>
+                <td>{{ file.mod_time_str }}</td>
+                <td>
+                    {% if file.name.endswith('.note') %}
+                    <a href="{{ url_for('edit_note', fn=file.name) }}">Edit</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div id="context-menu" class="context-menu">
+        <ul>
+            <li id="ctx-rename">Rename</li>
+            <li id="ctx-delete">Delete</li>
+        </ul>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const uploadForm = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const filesTable = document.getElementById('files-table').getElementsByTagName('tbody')[0];
+        const contextMenu = document.getElementById('context-menu');
+        let activeFilename = null;
+
+        // Drag and Drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                handleFiles(files);
+            }
+        });
+
+        // Form Upload
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (fileInput.files.length) {
+                handleFiles(fileInput.files);
+            }
+        });
+
+        function handleFiles(files) {
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload(); // Simple refresh to update the table
+                    } else {
+                        alert(`Error uploading ${file.name}: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Upload error:', error);
+                    alert(`Error uploading ${file.name}.`);
+                });
+            }
+        }
+
+        // Context Menu
+        filesTable.addEventListener('contextmenu', (e) => {
+            const row = e.target.closest('tr');
+            if (!row) return;
+
+            e.preventDefault();
+            activeFilename = row.dataset.filename;
+
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.style.top = `${e.pageY}px`;
+        });
+
+        document.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
+
+        document.getElementById('ctx-rename').addEventListener('click', () => {
+            if (!activeFilename) return;
+            const newName = prompt('Enter new filename:', activeFilename);
+            if (newName && newName !== activeFilename) {
+                fetch('/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: activeFilename, new_name: newName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert(`Error renaming file: ${data.error}`);
+                    }
+                })
+                .catch(error => console.error('Rename error:', error));
+            }
+        });
+
+        document.getElementById('ctx-delete').addEventListener('click', () => {
+            if (!activeFilename) return;
+            if (confirm(`Are you sure you want to delete ${activeFilename}?`)) {
+                fetch(`/delete/${activeFilename}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert(`Error deleting file: ${data.error}`);
+                    }
+                })
+                .catch(error => console.error('Delete error:', error));
+            }
+        });
+    </script>
+</body>
+</html>
