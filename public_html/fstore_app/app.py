@@ -567,7 +567,7 @@ def board_api(slug: str) -> Response:
             mutated = True
     elif op == "reorder":
         order = data.get("order") or []
-        if isinstance(order, Iterable):
+        if isinstance(order, list):
             positions = {str(task_id): idx for idx, task_id in enumerate(order)}
             board["tasks"].sort(key=lambda item: positions.get(str(item.get("id")), len(board["tasks"])))
             mutated = True
