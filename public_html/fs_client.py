@@ -29,7 +29,7 @@ def list_files() -> None:
 
 def download(remote: str, local: Optional[str]) -> None:
     url = api('/files/' + urllib.parse.quote(remote))
-    with SESSION.get(url, stream=True) as res:
+    with SESSION.get(url, stream=True, timeout=30) as res:
         res.raise_for_status()
         if local == '-' or local is None:
             handle = sys.stdout.buffer
