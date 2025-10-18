@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="manifest" href="{{ url_for('web_manifest') }}">
+    <link rel="icon" href="{{ url_for('favicon') }}" type="image/svg+xml">
+    <meta name="theme-color" content="#111111">
+    <title>memor.ia.br — Todos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+  </head>
+  <body>
+    <div class="wrap" data-board-slug="{{ board_slug }}" data-origin="{{ origin }}">
+      <div class="toolbar">
+        <div class="row" style="flex:1;gap:.5rem">
+          <span class="small pill">Board</span>
+          <input id="slug" type="text" value="{{ board_slug }}" aria-label="Board slug" style="max-width:240px" list="boards">
+          <datalist id="boards"></datalist>
+          <button class="secondary" id="switch" title="Open board by slug">Open</button>
+          <button class="secondary" id="newBoard" title="Create a new random board">New</button>
+        </div>
+        <div class="row right">
+          <span class="small">Shortcuts: <span class="kbd">Enter</span> add/edit, <span class="kbd">Esc</span> cancel, <span class="kbd">Ctrl</span>+<span class="kbd">/</span> focus</span>
+        </div>
+      </div>
+
+      <div id="offline" class="offline" role="status" aria-live="polite">You are offline. Changes will queue and sync when back online.</div>
+
+      <div class="box" aria-label="Todo app">
+        <div class="row" style="margin-bottom:.6rem">
+          <input id="title" type="text" value="My Todo" aria-label="List title" title="Title (Enter to save, Esc to cancel)">
+          <button id="saveTitle" class="secondary" title="Save title">Save title</button>
+          <button id="toggleAll" class="secondary" title="Toggle all tasks">Complete all</button>
+          <button id="clearDone" class="secondary" title="Remove completed tasks">Clear completed</button>
+          <button id="clearAll" class="warn" title="Remove all tasks">Clear all</button>
+        </div>
+
+        <div class="row" style="margin-bottom:.6rem">
+          <input id="newtodo" type="text" placeholder="Add a task" autofocus aria-label="New task">
+          <button id="add">Add</button>
+          <input id="search" type="search" placeholder="Search" aria-label="Search tasks" style="max-width:240px">
+          <div class="chips" role="tablist" aria-label="Filter tasks">
+            <button class="chip active" data-filter="all" role="tab" aria-selected="true">All</button>
+            <button class="chip" data-filter="active" role="tab" aria-selected="false">Active</button>
+            <button class="chip" data-filter="done" role="tab" aria-selected="false">Completed</button>
+          </div>
+        </div>
+
+        <ul id="list" aria-live="polite"></ul>
+
+        <div class="meta">
+          <div>
+            <span class="small">Share this board URL:</span>
+            <input id="shareUrl" type="text" readonly style="max-width:380px" aria-label="Share URL">
+            <button class="secondary" id="copy">Copy</button>
+            <span class="small count" id="counts"></span>
+          </div>
+          <span class="small right" id="updated"></span>
+        </div>
+
+        <div class="meta">
+          <div class="status small" id="status" aria-live="polite"></div>
+          <button id="undo" class="secondary" style="display:none">Undo</button>
+          <span class="sr" id="srmsg" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

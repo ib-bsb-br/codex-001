@@ -1,0 +1,10 @@
+- [DOC] Preserve the Passenger layout (`public_html/passenger_wsgi.py`, `public_html/fstore_app/`, `public_html/fstore_app/templates/`, `public_html/fstore_app/static/`, `public_html/fstore_app/data/`) and ensure `passenger_wsgi.py` only exposes the Flask `application`.
+- [DOC] Maintain the unauthenticated task-board UX: inline edits with autosave cues, drag-and-drop reorder disabled while filtering, filters/search persisted in localStorage, undo timers, offline queueing, and PWA caching.
+- [DOC] Persist boards as JSON beneath `public_html/fstore_app/data/` using `safe_slug` filenames and advisory locks; never write outside that directory.
+- [DOC] Emit the PHP-equivalent headers and caching behavior (`X-Content-Type-Options`, conditional HSTS, `Cache-Control`, ETag/Last-Modified) for HTML, JSON, and asset routes.
+- [DOC] Serve `/manifest.json`, `/sw.js`, and `/favicon.svg` with dedicated endpoints and appropriate cache lifetimes; register the service worker from the UI shell.
+- [DOC] Provide `/fs` as automation guidance (sample curl calls) unless requirements explicitly request a downloadable client.
+- [DOC] Document deployment via README and framework spec: DirectAdmin Python Selector settings, Python dependency installation, writable `data/` directory, and smoke-test expectations.
+- [FA] When instructions conflict, prioritize documentation, then first-, second-, and third-approach artifacts before historical prompts.
+- [FA] Keep chat output as canonical; mirror section counts or formatting directives from higher-priority instructions.
+- [SA] Enforce slug sanitization, JSON schema compatibility, and automated tests (e.g., Flask client unit tests) when implementing new features.

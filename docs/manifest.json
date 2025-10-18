@@ -1,0 +1,10 @@
+{
+  "repo_name": "ib-bsb-br/codex-001",
+  "artifacts": [
+    {"path": "docs/framework_spec.md", "type": "spec", "generated": true},
+    {"path": "docs/generation_policy.md", "type": "policy", "generated": true},
+    {"path": "docs/worked_examples.md", "type": "example", "generated": true},
+    {"path": "docs/manifest.json", "type": "schema", "generated": true}
+  ],
+  "metrics": ["format_adherence", "consistency", "task_success", "rule_conflict_free"]
+}
