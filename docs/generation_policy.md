@@ -1,10 +1,9 @@
-- [DOC] Preserve the Passenger layout (`public_html/passenger_wsgi.py`, `public_html/fstore_app/`, `public_html/fstore_app/templates/`, `public_html/fstore_app/static/`, `public_html/fstore_app/data/`) and ensure `passenger_wsgi.py` only exposes the Flask `application`.
-- [DOC] Maintain the unauthenticated task-board UX: inline edits with autosave cues, drag-and-drop reorder disabled while filtering, filters/search persisted in localStorage, undo timers, offline queueing, and PWA caching.
-- [DOC] Persist boards as JSON beneath `public_html/fstore_app/data/` using `safe_slug` filenames and advisory locks; never write outside that directory.
-- [DOC] Emit the PHP-equivalent headers and caching behavior (`X-Content-Type-Options`, conditional HSTS, `Cache-Control`, ETag/Last-Modified) for HTML, JSON, and asset routes.
-- [DOC] Serve `/manifest.json`, `/sw.js`, and `/favicon.svg` with dedicated endpoints and appropriate cache lifetimes; register the service worker from the UI shell.
-- [DOC] Provide `/fs` as automation guidance (sample curl calls) unless requirements explicitly request a downloadable client.
-- [DOC] Document deployment via README and framework spec: DirectAdmin Python Selector settings, Python dependency installation, writable `data/` directory, and smoke-test expectations.
-- [FA] When instructions conflict, prioritize documentation, then first-, second-, and third-approach artifacts before historical prompts.
-- [FA] Keep chat output as canonical; mirror section counts or formatting directives from higher-priority instructions.
-- [SA] Enforce slug sanitization, JSON schema compatibility, and automated tests (e.g., Flask client unit tests) when implementing new features.
+- [LAYOUT] Preserve the Passenger mirror: `public_html/passenger_wsgi.py`, `public_html/fs_client.py`, `public_html/fstore_app/` (app.py, templates, static, data subdirectories) must remain in-tree and production-ready.
+- [FILES] Keep the file server endpoints unauthenticated while enforcing filename sanitisation; ensure drag-and-drop uploads, context actions, and `.note` editing remain functional.
+- [BOARDS] Retain task-board UX parity: offline queueing, undo, drag-and-drop + keyboard reorder, filter/search persistence, and the extended keyboard shortcuts imported from the Checkvist cheat sheet.
+- [CONCURRENCY] All board mutations require `If-Match` + `Idempotency-Key`; reuse the on-disk idempotency store to de-duplicate retries, and reject stale `If-Match` headers with `409`.
+- [CACHE] Maintain automatic asset cache-busting via `ASSET_VERSION` and ensure `sw.js` consumes the same token when defining cache names.
+- [DOCS] Update README and `/docs` artefacts whenever routes, workflows, or deployment steps change; `/fs` must always describe both file and board automation flows with curl/bash/pwsh/python snippets.
+- [TESTS] Ship unit + Playwright coverage for file CRUD, board concurrency, keyboard shortcuts, and offline queue behaviour; keep test data isolated via configurable `DATA_DIR` fixtures.
+- [DEPENDENCIES] Runtime dependencies stay minimal (`Flask>=2.2,<3.0`); development/test tooling (pytest, pytest-playwright, playwright, requests) belong in documentation or optional dev requirements, not in `requirements.txt`.
+- [CLI] Maintain `/fs_client.py` as the downloadable automation client, rewriting `TARGET_URL` server-side; ensure the script URL-encodes filenames for every HTTP request.

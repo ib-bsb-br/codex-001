@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Edit Note – {{ filename }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v=asset_version) }}">
+  </head>
+  <body class="note-body" data-filename="{{ filename }}">
+    <header class="note-header">
+      <h1>{{ filename }}</h1>
+      <div class="note-state" id="state">Current</div>
+      <a class="link" href="{{ url_for('dashboard') }}">Back to hub</a>
+    </header>
+    <section class="note-editor">
+      <div id="editor" contenteditable="true">{{ content | safe }}</div>
+    </section>
+    <script>
+      const filename = {{ filename | tojson }};
+      const state = document.getElementById('state');
+      const editor = document.getElementById('editor');
+      let timeout = null;
+      let pending = false;
+      let lastPayload = editor.innerHTML;
+
+      function setState(label, tone) {
+        state.textContent = label;
+        state.dataset.tone = tone;
+      }
+
+      async function saveNow(content) {
+        pending = true;
+        setState('Saving…', 'saving');
+        try {
+          const resp = await fetch('{{ url_for('api_files_upload_data') }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, content })
+          });
+          if (!resp.ok) {
+            throw new Error(await resp.text());
+          }
+          lastPayload = content;
+          setState('Current', 'ok');
+        } catch (err) {
+          console.error(err);
+          setState('Error', 'error');
+        } finally {
+          pending = false;
+        }
+      }
+
+      function scheduleSave() {
+        const content = editor.innerHTML;
+        if (content === lastPayload) return;
+        if (pending) return;
+        setState('Pending…', 'pending');
+        clearTimeout(timeout);
+        timeout = setTimeout(() => saveNow(content), 2000);
+      }
+
+      editor.addEventListener('input', scheduleSave);
+
+      window.addEventListener('beforeunload', (event) => {
+        if (pending || editor.innerHTML !== lastPayload) {
+          if (!pending) {
+            saveNow(editor.innerHTML);
+          }
+          event.preventDefault();
+          event.returnValue = '';
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,27 +1,35 @@
 # Worked Examples
 
-## Example 1: Feature – Add board archival toggle
-**Scenario**: Introduce an “archive board” flag that hides a board from recent history while keeping the slug valid.
-**Approach**:
-1. Update the framework spec to confirm the new metadata lives inside each board JSON (e.g., `archived: bool`).
-2. Extend `public_html/fstore_app/app.py` to accept a new `op` (`archive`) that toggles the flag and persists the board.
-3. Teach the UI (`static/app.js`) to hide archived slugs from the datalist while still allowing direct navigation.
-4. Document the workflow in README and add unit tests covering the new operation.
-**Compliance Checks**: Ensure JSON schema remains backward compatible, caching headers persist, and automated tests pass.
+## Example 1: Uploading Meeting Notes and Sharing via CLI
+**Scenario**: A collaborator needs to upload `meeting.note`, edit it inline, and hand the link to a teammate who prefers the CLI.
+**Steps**:
+1. Drag `meeting.note` onto the Files panel; verify the status banner flashes “Uploaded”.
+2. Click “Edit note” to open `/files/editor/meeting.note`, type updates, and confirm the autosave badge cycles `Pending → Saving → Current`.
+3. Visit `/fs` and copy the `curl -O …/fs_client.py` command; teammate downloads the CLI, runs `python fs_client.py ls`, and sees `meeting.note` listed.
+**Checks**: Filename sanitisation succeeds (no traversal), `/api/files/upload-data` responds `200`, CLI resolves the live `TARGET_URL`.
 
-## Example 2: Conflict – Request for authentication
-**Scenario**: A stakeholder asks to password-protect boards.
-**Approach**:
-1. Consult the instructions hierarchy: documentation and user mandates require a public, no-auth surface.
-2. Decline the change, referencing the “Unauthenticated Surface” constraint, and propose mitigations (rate limiting, monitoring) that respect the policy.
-3. Capture the decision in project notes or PR commentary for transparency.
-**Compliance Checks**: Verify no authentication libraries or middleware are introduced; dependencies remain minimal.
+## Example 2: Conflict-Free Task Reorder with Keyboard Shortcuts
+**Scenario**: Two operators reorder tasks simultaneously; one uses keyboard shortcuts while offline, the other edits online.
+**Steps**:
+1. Operator A (online) focuses a task, presses `Ctrl+↓`, and observes the toast “Reordered”.
+2. Operator B (offline) presses `j/k` to focus another task, hits `Ctrl+↑`, and sees “Queued (offline)”.
+3. After reconnect, Operator B’s queue flushes. The backend compares `If-Match` + `Idempotency-Key`; stale headers return `409`, triggering an automatic refresh before retrying.
+**Checks**: Keyboard reorder triggers `POST /api/boards/<slug>` with correct headers, conflicts surface with `409`, offline queue flushes after `fetchBoard(true)` updates the ETag.
 
-## Example 3: Bug – Offline queue not flushing
-**Scenario**: Users report queued operations never sync after regaining connectivity.
-**Approach**:
-1. Reproduce by disabling the network, creating tasks, then reconnecting; observe logs in `static/app.js`.
-2. Inspect `flushOutbox()` for early returns (e.g., missing `navigator.onLine` checks) and adjust logic to retry until success.
-3. Add a regression test (browser automation or unit test with mocked fetch) ensuring queued ops flush and the offline banner hides.
-4. Update documentation to reflect troubleshooting steps and confirm `sw.js` still caches shell assets correctly.
-**Compliance Checks**: Confirm headers and tests pass, and that data files stay confined to `fstore_app/data/`.
+## Example 3: Automating File Lifecycle with curl
+**Scenario**: DevOps wants to script an artefact upload, rename, download, and delete purely via shell commands.
+**Steps**:
+1. Use `curl -F file=@build.zip $BASE/api/files/upload` to upload.
+2. Rename: `curl -X POST $BASE/api/files/rename -H 'Content-Type: application/json' -d '{"old_name":"build.zip","new_name":"release.zip"}'`.
+3. Download: `curl -O $BASE/files/release.zip` (URL-encoded if needed).
+4. Delete: `curl -X POST $BASE/api/files/delete/release.zip`.
+**Checks**: Each call returns `200`, `GET /api/files` reflects state transitions, and filenames containing spaces succeed when URL encoded.
+
+## Example 4: Automation Script Respecting Idempotency
+**Scenario**: A cron job adds tasks nightly but must avoid duplicates after transient failures.
+**Steps**:
+1. Fetch `/api/boards/nightly` and capture `ETag`.
+2. POST with payload `{"op":"add","text":"Rotate logs"}` plus headers `If-Match: <etag>`, `Idempotency-Key: <uuid>`.
+3. If the job reruns with the same key (retry), the API returns the stored response without duplicating tasks.
+**Checks**: The idempotency store persists entries under `data/boards/_idempotency/nightly.json`; repeated calls with the same key return identical JSON and `ETag`.
+

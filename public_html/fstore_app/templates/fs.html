@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Automation &amp; CLI Reference</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v=asset_version) }}">
+  </head>
+  <body class="fs-docs">
+    <header>
+      <h1>Automation &amp; CLI Reference</h1>
+      <p>Base URL: <code>{{ base }}</code></p>
+      <p><a href="{{ url_for('dashboard') }}" class="link">Back to FStore Hub</a></p>
+    </header>
+
+    <section>
+      <h2>File operations</h2>
+      <p>All file endpoints are unauthenticated and expect filename segments to be URL encoded.</p>
+      <table>
+        <thead>
+          <tr><th>Scenario</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          {% for name, example in files_examples.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td><pre><code>{{ example }}</code></pre></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>Download the Python CLI via <code>curl -O {{ base }}/fs_client.py</code> (served with the correct hub URL).</p>
+    </section>
+
+    <section>
+      <h2>Board automation</h2>
+      <p>Board writes require optimistic concurrency and idempotency headers:</p>
+      <ul>
+        <li><code>If-Match</code> header set to the latest ETag. Current public board ETag: <code>{{ public_etag }}</code>.</li>
+        <li><code>Idempotency-Key</code> header set to a unique token per mutation (UUID recommended).</li>
+      </ul>
+      <table>
+        <thead>
+          <tr><th>Scenario</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          {% for name, example in board_examples.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td><pre><code>{{ example }}</code></pre></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>Combine these calls with the offline queue in the web UI for retry-safe automation.</p>
+    </section>
+  </body>
+</html>

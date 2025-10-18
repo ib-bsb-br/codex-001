@@ -33,6 +33,11 @@
   const recentBoardsKey = 'memor_recent_boards_v1';
   const boardURL = `${origin}/?b=${encodeURIComponent(slug)}`;
 
+  const generateKey = () => {
+    if (window.crypto?.randomUUID) return crypto.randomUUID();
+    return `key-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
+
   shareUrl.value = boardURL;
   slugInput.value = slug;
 
@@ -231,6 +236,17 @@
     });
   }
 
+  function reorderByKeyboard(id, delta) {
+    const tasks = (boardData.tasks || []).map((t) => t.id);
+    const index = tasks.indexOf(id);
+    if (index < 0) return;
+    const target = Math.max(0, Math.min(tasks.length - 1, index + delta));
+    if (target === index) return;
+    tasks.splice(index, 1);
+    tasks.splice(target, 0, id);
+    op({ op: 'reorder', order: tasks }).then(() => flash('Reordered', 800));
+  }
+
   async function fetchBoard(force = false) {
     const url = `/api/boards/${encodeURIComponent(slug)}`;
     const headers = {};
@@ -251,10 +267,10 @@
     }
   }
 
-  function queueOp(payload) {
+  function queueOp(payload, token, etag) {
     const key = outboxKey(slug);
     const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    arr.push(payload);
+    arr.push({ payload, key: token, etag });
     localStorage.setItem(key, JSON.stringify(arr));
     offlineBanner.classList.add('show');
   }
@@ -267,8 +283,17 @@
     isSyncing = true;
     try {
       while (arr.length && navigator.onLine) {
-        const payload = arr[0];
-        await op(payload, { silent: true });
+        const entry = arr[0];
+        const payload = entry.payload || entry;
+        const token = entry.key || generateKey();
+        const etag = entry.etag || boardETag;
+        const result = await op(payload, {
+          silent: true,
+          idempotencyKey: token,
+          etag,
+          fromQueue: true,
+        });
+        if (!result) break;
         arr.shift();
         localStorage.setItem(key, JSON.stringify(arr));
       }
@@ -285,19 +310,49 @@
   }
 
   async function op(payload, opts = {}) {
+    const idKey = opts.idempotencyKey || generateKey();
+    let etag = opts.etag || boardETag;
+    if (!etag) {
+      await fetchBoard(true);
+      etag = boardETag;
+    }
+    if (!etag) {
+      if (!opts.fromQueue) {
+        queueOp(payload, idKey, null);
+        if (!opts.silent) flash('Queued (offline)', 1500);
+      }
+      return null;
+    }
     try {
       const res = await fetch(`/api/boards/${encodeURIComponent(slug)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: {
+          'Content-Type': 'application/json',
+          'If-Match': etag,
+          'Idempotency-Key': idKey,
+        },
+        body: JSON.stringify(payload),
       });
+      if (res.status === 409) {
+        if (!opts.silent) flash('Update conflict detected. Refreshing…', 1800);
+        await fetchBoard(true);
+        return null;
+      }
+      if (res.status === 428) {
+        if (!opts.silent) flash('Missing concurrency headers', 1800);
+        return null;
+      }
       if (!res.ok) throw new Error('Bad response');
       const data = await res.json();
+      boardETag = res.headers.get('ETag') || boardETag;
+      boardLastMod = res.headers.get('Last-Modified') || boardLastMod;
       if (!opts.silent) render(data);
       return data;
     } catch (err) {
-      queueOp(payload);
-      if (!opts.silent) flash('Queued (offline)', 1500);
+      if (!opts.fromQueue) {
+        queueOp(payload, idKey, etag);
+        if (!opts.silent) flash('Queued (offline)', 1500);
+      }
       return null;
     }
   }
@@ -418,10 +473,32 @@
         e.preventDefault();
         input.focus();
       }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === '/') {
+        e.preventDefault();
+        $('#search').focus();
+      }
       if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (document.activeElement !== input && document.activeElement !== title) {
           input.focus();
         }
+      }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'j' || e.key === 'k')) {
+        const items = Array.from(list.querySelectorAll('li'));
+        if (!items.length) return;
+        const active = document.activeElement?.closest?.('li');
+        let index = items.indexOf(active);
+        if (index === -1) index = e.key === 'j' ? -1 : items.length;
+        const next = e.key === 'j' ? Math.min(items.length - 1, index + 1) : Math.max(0, index - 1);
+        items[next].focus();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        const active = document.activeElement?.closest?.('li');
+        if (!active) return;
+        const id = active.dataset.id;
+        if (!id) return;
+        e.preventDefault();
+        const delta = e.key === 'ArrowUp' ? -1 : 1;
+        reorderByKeyboard(id, delta);
       }
     });
 

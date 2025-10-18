@@ -1,66 +1,103 @@
-# memor.ia.br Task Boards (Passenger Flask Edition)
+# FStore Collaborative Hub (Passenger + Flask)
 
-This repository mirrors the production layout that runs the memor.ia.br task-board application on CooliceHost shared hosting. The Flask rewrite preserves the PHP build’s behaviors—inline task editing, drag-and-drop reorder, undo flows, filters, offline/PWA support—while fitting Passenger’s WSGI expectations.
+This repository mirrors the CooliceHost deployment tree for the integrated FStore hub. The application merges the original unauthenticated file drop with the memor.ia.br task boards, delivering drag-and-drop file sharing, `.note` editing, keyboard-first task management, offline queueing, and automation guidance—all from a single Passenger-hosted Flask service.
 
-## Features
-- Keyboard-driven task management with inline editing, undo (10s), filters, and search persistence via localStorage.
-- Drag-and-drop reorder (disabled when filtering or searching) with server-side persistence.
-- Offline support with queued mutations and service-worker cached shell assets.
-- REST-style JSON endpoint at `/api/boards/<slug>` with ETag/Last-Modified validators.
-- Automation reference at `/fs` offering sample curl invocations.
+## Highlights
+- **Unified workspace** – Files and boards share the same dashboard with quick navigation, shared automation docs, and consistent theming.
+- **Keyboard centric workflows** – Borrowed from the Checkvist cheatsheet: `/` focuses search, `j/k` move between tasks, `Ctrl+↑/↓` reorders tasks, `Space` toggles completion, `Shift+Tab/Tab` indents notes, and Undo remains available for 10 seconds.
+- **Resilient offline mode** – Service worker caches the shell while optimistic concurrency (`If-Match`) and idempotency keys keep mutations safe during reconnects.
+- **File extras** – Drag-and-drop uploads, rename/delete context actions, instant `.note` creation, and a downloadable Python CLI with URL-safe handling.
+- **Automation-first** – `/fs` bundles Bash/dash/PowerShell/cURL/Python snippets for both file and board APIs, plus a ready-to-run CLI at `/fs_client.py`.
 
 ## Repository Layout
 ```
 public_html/
-├── passenger_wsgi.py           # Passenger entry point exporting `application`
+├── passenger_wsgi.py              # Passenger entry point exposing `application`
+├── fs_client.py                   # Automation helper (downloadable via /fs_client.py)
 ├── fstore_app/
 │   ├── __init__.py
-│   ├── app.py                  # Flask routes, JSON persistence, headers
-│   ├── templates/
-│   │   └── app.html            # HTML shell
+│   ├── app.py                     # Flask app: routing, headers, persistence, idempotency
+│   ├── data/
+│   │   ├── boards/sample-board.json
+│   │   └── files/.gitkeep
 │   ├── static/
-│   │   ├── app.css             # UI styling
-│   │   ├── app.js              # Front-end logic and offline queueing
-│   │   └── sw.js               # Service worker
-│   └── data/                   # JSON boards (writable at runtime)
-├── requirements.txt
+│   │   ├── app.css                # Shared styling for files/boards/notes/docs
+│   │   ├── app.js                 # Task board logic, concurrency, keyboard shortcuts
+│   │   ├── files.js               # File overview, uploads, context actions
+│   │   ├── dashboard.js           # Panel navigation & persistence
+│   │   └── sw.js                  # Service worker (versioned via ASSET_VERSION)
+│   └── templates/
+│       ├── dashboard.html         # Combined UI shell
+│       ├── fs.html                # Automation documentation surface
+│       └── note.html              # `.note` editor
+├── requirements.txt               # Runtime dependency pin (Flask only)
 └── tests/
-    └── test_app.py             # Flask client tests
+    ├── conftest.py                # Live server fixture for browser tests
+    ├── test_app.py                # Flask client unit tests
+    └── playwright/                # Playwright regression tests for boards/files
 ```
 
-## Deployment (CooliceHost DirectAdmin + Passenger)
-1. Upload or clone the repository under `~/domains/<domain>/public_html/`.
-2. In DirectAdmin → **Python Selector**:
-   - App Root: `public_html/`
-   - Application URL: `/`
-   - Startup File: `passenger_wsgi.py`
-3. Create/activate the virtual environment and install dependencies:
+## Deployment on CooliceHost (DirectAdmin + Passenger)
+1. Upload or clone this repository to `~/domains/<domain>/public_html/`.
+2. In **DirectAdmin → Python Selector** configure:
+   - **App Root:** `public_html/`
+   - **Application URL:** `/`
+   - **Startup File:** `passenger_wsgi.py`
+3. Create/activate the virtualenv and install runtime deps:
    ```bash
    pip install -r requirements.txt
    ```
-4. Ensure `public_html/fstore_app/data/` is writable by the web user (Passenger runs as the domain user by default).
-5. Run a cold import check from SSH to confirm Passenger can load the app:
+4. Ensure `public_html/fstore_app/data/` (and subdirectories) are writable by the Passenger user.
+5. Perform a cold import to confirm Passenger can load the WSGI entry:
    ```bash
    python -c "import passenger_wsgi"
    ```
-6. Visit `/` to verify the UI, then smoke-test `/api/boards/public`, `/boards/new`, `/fs`, and offline behavior.
+6. Smoke-test the live site:
+   - `/` should show both **Files** and **Boards** panels.
+   - `/api/files` returns JSON; `/api/boards/public` respects ETags.
+   - `/fs` renders automation help; `/fs_client.py` downloads the CLI with the correct base URL.
 
-## Development
-- **Environment**: Python 3.10+, Flask >= 2.2,<3.0.
-- **Testing**: run the automated suite with `pytest` or `python -m pytest` (tests rely on Flask’s built-in client).
-- **Linting**: no repo-wide linters are enforced; follow existing style.
-- **Data**: board JSON files created during development live under `public_html/fstore_app/data/`.
+### Remote transfers & SSH
+Follow CooliceHost’s guidance (see docs/coolice_documentation excerpt) to manage SSH keys and use `sftp`, `scp`, or `rsync` for deployments. The Passenger process runs as the domain user, so no extra sudo steps are required once keys are in place.
 
-## Smoke-Test Checklist
-- `python -c "import passenger_wsgi"` succeeds.
-- `/` renders with active slug attributes and loads assets from `static/`.
-- `/api/boards/public` returns JSON, respects ETag/Last-Modified, and supports POST mutations.
-- Drag-and-drop reorder persists across reloads; undo prompts behave as expected.
-- Offline edits queue and sync after reconnection (observe status banner).
-- `/fs` returns automation guidance JSON.
+## Local Development & Testing
+1. **Environment:** Python 3.10+, Flask ≥ 2.2,<3.0. Install additional dev dependencies:
+   ```bash
+   pip install pytest pytest-playwright playwright requests
+   playwright install
+   ```
+2. **Run tests:**
+   ```bash
+   python -m pytest                     # Flask unit tests
+   python -m pytest -m playwright       # Browser flows (requires Playwright browsers)
+   ```
+   The unit suite exercises slug safety, file CRUD, concurrency conflicts, and automation surfaces. Playwright verifies drag-and-drop-style interactions, keyboard shortcuts, and file operations end-to-end.
+3. **Data paths:** tests and local runs write to `public_html/fstore_app/data/boards` and `.../files`. Delete contents between runs if you need a clean slate.
+
+## Automation & CLI
+- `/fs` serves an HTML manual with Bash/dash/PowerShell/cURL/Python examples for both files and boards, highlighting the required `If-Match` and `Idempotency-Key` headers.
+- `/fs_client.py` delivers a Python CLI wrapping file operations (`ls`, `get`, `put`, `cat`, `edit`, `mv`, `rm`) with URL-safe handling. Download with `curl -O https://<host>/fs_client.py` and run `python fs_client.py --help`.
+
+## Keyboard Reference (excerpt)
+- `/` – focus board search.
+- `j` / `k` – move between tasks.
+- `Ctrl + ↑/↓` – reorder focused task (follows Checkvist’s move commands).
+- `Space` – toggle completion for focused task.
+- `Shift + Tab / Tab` – adjust indent during inline editing.
+- `Shift + Shift` (double tap `Shift`) – use browser shortcut find (native) while the toolbar remains accessible.
+- `Esc` – cancel inline edits or uploads.
 
 ## Troubleshooting
-- **Passenger errors**: check `~/passenger_wsgi.log` and ensure virtualenv site-packages include Flask.
-- **Permission issues**: run `chmod 755 public_html` and `chmod 755 public_html/fstore_app` if Passenger cannot access files; keep `data/` at least `755` so Passenger can write files.
-- **Stale assets**: bump the cache key in `static/sw.js` (`CACHE_NAME`) when static files change significantly.
-- **Service worker**: run `navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))` in the browser console when testing SW updates.
+- **Passenger 500s:** re-run `python -c "import passenger_wsgi"`; inspect `~/passenger_wsgi.log` for import errors or permission issues.
+- **Static asset caching:** service worker caches are versioned via `ASSET_VERSION`. Changing files in `static/` recomputes the hash; reload with `Ctrl+Shift+R` or unregister the worker via DevTools.
+- **File permissions:** ensure uploaded files inherit `0644`. The app enforces safe filenames (rejects `..`, `/`, `\`).
+- **Conflicts on board writes:** a `409` response indicates the client used a stale ETag. Re-fetch the board before retrying or rely on the offline queue, which refreshes automatically when the network returns.
+- **Playwright artifacts:** reports live in `playwright-report/` and `test-results/` (ignored by git).
+
+## Smoke-Test Checklist
+- `python -c "import passenger_wsgi"` succeeds on the server.
+- `/` loads with both panels; `Files` supports drag-and-drop uploads and `.note` creation.
+- `/api/boards/<slug>` returns JSON with `ETag`/`Last-Modified`; POST mutations succeed with matching `If-Match` + unique `Idempotency-Key`.
+- Offline browser session queues updates and syncs after reconnect (observe status banner changes).
+- `/fs` and `/fs_client.py` respond with HTML and Python sources tailored to the live host.
+
