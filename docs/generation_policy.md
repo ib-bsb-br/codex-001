@@ -1,8 +1,8 @@
-- [DOC] Enforce the documented Passenger layout by placing `passenger_wsgi.py`, `fstore_app/`, and `fs_client.py` under `public_html/`, and verify `application` imports without running `app.run()`.
-- [DOC] Keep all endpoints public by stripping authentication hooks, credential files, and token flows from both server and CLI artifacts.
-- [DOC] Preserve UX parity—drag-and-drop uploads, autosave banners, context menu actions, and CLI command set—when modifying templates or scripts.
-- [DOC] Reject unsafe filenames (`..`, `/`, `\\`, empty) before filesystem access, returning `400/403/404` responses consistent with documented semantics.
-- [DOC] Package dependencies minimally by limiting `requirements.txt` to `Flask>=2.2,<3.0` and removing unused auth libraries.
-- [FA] Resolve instruction conflicts by prioritizing documentation over approach notes, mirroring chat outputs if parallel artifacts are produced.
-- [FA] Maintain exactly the specified sectioning and chat-surface primacy when summarizing or exporting procedural content.
-- [SA] When documentation is silent, reuse second-approach deployment guidance (DirectAdmin Python Selector configuration, data directory permissions) before consulting third-approach material.
+- [DOC] Mirror the documented Passenger layout (`public_html/passenger_wsgi.py`, `public_html/fstore_app/`, `public_html/fs_client.py`) and validate that `passenger_wsgi.py` exposes `application` without invoking `app.run()`.
+- [DOC] Keep every endpoint public by stripping authentication hooks, credential caches, or token flows across server, templates, and CLI artifacts.
+- [DOC] Preserve front-end UX guarantees: drag-and-drop uploads, autosave banner states, context-menu actions, filename de-duplication, and CLI feature parity.
+- [DOC] Enforce filename validation that rejects `..`, `/`, `\\`, and empty strings prior to filesystem access, returning `400/403/404` according to the documented semantics.
+- [DOC] Maintain minimal dependencies by limiting `requirements.txt` to `Flask>=2.2,<3.0` and removing unused auth libraries.
+- [FA] Resolve instruction conflicts by prioritizing documentation, then first-, second-, and third-approach guidance in order; keep chat output as the canonical surface if parallel artifacts arise.
+- [FA] Honour section-count and formatting directives specified in higher-priority instructions when generating narrative or procedural content.
+- [SA] When documentation and first-approach materials are silent, reuse second-approach deployment guidance (DirectAdmin Python Selector configuration, data-directory permissions) before consulting third-approach notes.

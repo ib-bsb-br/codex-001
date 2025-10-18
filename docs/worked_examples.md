@@ -1,27 +1,27 @@
 # Worked Examples
 
 ## Example 1: Typical Feature Update
-**Scenario**: A maintainer asks for a public `/health` endpoint that reports storage usage without altering auth posture.
+**Scenario**: Add a public `/health` endpoint reporting disk usage without introducing authentication.
 **Approach**:
-1. Consult the framework spec to confirm the repository layout and no-auth constraint.
-2. Implement the route inside `public_html/fstore_app/app.py`, returning JSON with disk metrics sourced from `fstore_app/data/`.
-3. Keep dependency footprint minimal (no new packages) and expose documentation in `README.md`.
-4. Run the documented smoke tests (`python -c "import passenger_wsgi"`, manual `GET /health`) to validate WSGI integrity.
-**Compliance Checks**: Ensure filename validation logic is reused, no auth artifacts are introduced, and deployment alignment remains intact.
+1. Consult the framework spec for deployment layout and no-auth constraint.
+2. Implement the route inside `public_html/fstore_app/app.py`, reuse `_reject_name` or equivalent safeguards for any filename inputs, and return JSON with disk metrics sourced from `fstore_app/data/`.
+3. Preserve UX expectations by documenting the new endpoint in `README.md` and verifying `/` still renders correctly.
+4. Run smoke tests (`python -c "import passenger_wsgi"`, manual `GET /health`) to ensure WSGI integrity.
+**Compliance Checks**: Confirm no new dependencies, no auth artifacts, and filenames remain validated.
 
 ## Example 2: Instruction Conflict Resolution
-**Scenario**: A request arrives to password-protect uploads while another directive reiterates the “public, no auth” mandate.
+**Scenario**: A stakeholder requests password-protected uploads while business requirements reiterate “public, no auth.”
 **Approach**:
-1. Apply the instructions hierarchy: documentation forbids authentication, so decline the password requirement.
-2. Offer alternative mitigations (e.g., rate limiting) that respect the no-auth policy.
-3. Document the decision in project notes or PR description referencing the hierarchy rationale.
-**Compliance Checks**: Confirm that no code or dependency changes introduce auth, and responses clearly cite the precedence order.
+1. Apply the instructions hierarchy: documentation and system directives forbid authentication.
+2. Decline the password request, citing the hierarchy, and propose acceptable mitigations (e.g., rate limiting) consistent with no-auth policy.
+3. Record the decision in project notes or PR descriptions, referencing the relevant instruction tiers.
+**Compliance Checks**: Ensure no code introduces auth, dependencies stay minimal, and communication documents the rationale.
 
 ## Example 3: Sparse Bug Report
-**Scenario**: User reports “note autosave feels slow” without further detail.
+**Scenario**: A user reports “note autosave feels slow” without detail.
 **Approach**:
-1. Review `templates/note.html` to understand autosave intervals (`update_interval = 2000` ms).
-2. Replicate by editing a `.note` file, watching state transitions, and capturing timing metrics.
-3. If adjustment is justified, expose the interval as a configurable constant in `app.py` or front-end script, preserving UX parity.
-4. Document the change and advise retesting via browser and CLI flows to ensure no regression.
-**Compliance Checks**: Maintain autosave status banner semantics, keep file validation intact, and avoid expanding dependencies.
+1. Review `public_html/fstore_app/templates/note.html` to confirm the autosave cadence (`update_interval = 2000` ms).
+2. Reproduce by editing a `.note` file, observing state transitions (`Pending`, `Current`, failure states) and timing.
+3. If adjustment is justified, expose the interval as a configurable constant while retaining autosave banner semantics and filename safety.
+4. Validate via browser regression checks and CLI uploads to ensure no new regressions.
+**Compliance Checks**: Maintain UX guarantees, keep dependencies unchanged, and preserve deployment alignment.
