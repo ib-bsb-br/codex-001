@@ -62,7 +62,7 @@ def rename(old: str, new: str) -> None:
 
 
 def delete(remote: str) -> None:
-    res = SESSION.post(api('/api/files/delete/' + urllib.parse.quote(remote)))
+    res = SESSION.post(api('/api/files/delete/' + urllib.parse.quote(remote)), timeout=30)
     if res.status_code == 404:
         print('Not found', file=sys.stderr)
         sys.exit(1)
