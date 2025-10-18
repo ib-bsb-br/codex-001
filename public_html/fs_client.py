@@ -21,7 +21,7 @@ def api(path: str) -> str:
 
 
 def list_files() -> None:
-    res = SESSION.get(api('/api/files'))
+    res = SESSION.get(api('/api/files'), timeout=30)
     res.raise_for_status()
     for entry in res.json():
         print(f"{entry['mod_time_str']}\t{entry['name']}")
