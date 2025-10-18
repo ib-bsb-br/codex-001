@@ -53,7 +53,7 @@ def upload(local: str, remote: Optional[str]) -> None:
 
 
 def rename(old: str, new: str) -> None:
-    res = SESSION.post(api('/api/files/rename'), json={'old_name': old, 'new_name': new})
+    res = SESSION.post(api('/api/files/rename'), json={'old_name': old, 'new_name': new}, timeout=30)
     if res.status_code == 409:
         print('Target name already exists', file=sys.stderr)
         sys.exit(1)
