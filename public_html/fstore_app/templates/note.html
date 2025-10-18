@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Note: {{ filename }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; }
+        #editor { width: 100%; height: 90vh; border: 1px solid #ccc; padding: 10px; font-size: 16px; }
+        #status-bar { padding: 8px; background-color: #f2f2f2; text-align: right; }
+    </style>
+</head>
+<body>
+    <div id="status-bar">Status: <span id="status-text">Current</span></div>
+    <textarea id="editor">{{ content }}</textarea>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const statusText = document.getElementById('status-text');
+        const filename = "{{ filename }}";
+        let saveTimeout;
+
+        editor.addEventListener('input', () => {
+            statusText.textContent = 'Pending...';
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveNote, 2000); // 2-second debounce
+        });
+
+        function saveNote() {
+            statusText.textContent = 'Saving...';
+            fetch('/upload_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename: filename,
+                    content: editor.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = 'Current';
+                } else {
+                    statusText.textContent = `Error: ${data.error}`;
+                }
+            })
+            .catch(error => {
+                console.error('Save error:', error);
+                statusText.textContent = 'Error: Could not save.';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,1 @@
-shot-scraper
-datasette
-sqlite-utils
-llm
+Flask>=2.2,<3.0
