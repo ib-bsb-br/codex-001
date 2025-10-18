@@ -1,0 +1,10 @@
+{
+  "title": "Sample Launch Plan",
+  "created": 1700000000,
+  "updated": 1700000000,
+  "tasks": [
+    {"id": "alpha", "text": "Sketch unified FStore + board UI", "done": false, "ts": 1700000000},
+    {"id": "beta", "text": "Upload CLI via /fs", "done": true, "ts": 1700003600},
+    {"id": "gamma", "text": "Verify offline queue", "done": false, "ts": 1700007200}
+  ]
+}

@@ -1,27 +1,35 @@
 # Worked Examples
 
-## Example 1: Typical Feature Update
-**Scenario**: Add a public `/health` endpoint reporting disk usage without introducing authentication.
-**Approach**:
-1. Consult the framework spec for deployment layout and no-auth constraint.
-2. Implement the route inside `public_html/fstore_app/app.py`, reuse `_reject_name` or equivalent safeguards for any filename inputs, and return JSON with disk metrics sourced from `fstore_app/data/`.
-3. Preserve UX expectations by documenting the new endpoint in `README.md` and verifying `/` still renders correctly.
-4. Run smoke tests (`python -c "import passenger_wsgi"`, manual `GET /health`) to ensure WSGI integrity.
-**Compliance Checks**: Confirm no new dependencies, no auth artifacts, and filenames remain validated.
+## Example 1: Uploading Meeting Notes and Sharing via CLI
+**Scenario**: A collaborator needs to upload `meeting.note`, edit it inline, and hand the link to a teammate who prefers the CLI.
+**Steps**:
+1. Drag `meeting.note` onto the Files panel; verify the status banner flashes “Uploaded”.
+2. Click “Edit note” to open `/files/editor/meeting.note`, type updates, and confirm the autosave badge cycles `Pending → Saving → Current`.
+3. Visit `/fs` and copy the `curl -O …/fs_client.py` command; teammate downloads the CLI, runs `python fs_client.py ls`, and sees `meeting.note` listed.
+**Checks**: Filename sanitisation succeeds (no traversal), `/api/files/upload-data` responds `200`, CLI resolves the live `TARGET_URL`.
 
-## Example 2: Instruction Conflict Resolution
-**Scenario**: A stakeholder requests password-protected uploads while business requirements reiterate “public, no auth.”
-**Approach**:
-1. Apply the instructions hierarchy: documentation and system directives forbid authentication.
-2. Decline the password request, citing the hierarchy, and propose acceptable mitigations (e.g., rate limiting) consistent with no-auth policy.
-3. Record the decision in project notes or PR descriptions, referencing the relevant instruction tiers.
-**Compliance Checks**: Ensure no code introduces auth, dependencies stay minimal, and communication documents the rationale.
+## Example 2: Conflict-Free Task Reorder with Keyboard Shortcuts
+**Scenario**: Two operators reorder tasks simultaneously; one uses keyboard shortcuts while offline, the other edits online.
+**Steps**:
+1. Operator A (online) focuses a task, presses `Ctrl+↓`, and observes the toast “Reordered”.
+2. Operator B (offline) presses `j/k` to focus another task, hits `Ctrl+↑`, and sees “Queued (offline)”.
+3. After reconnect, Operator B’s queue flushes. The backend compares `If-Match` + `Idempotency-Key`; stale headers return `409`, triggering an automatic refresh before retrying.
+**Checks**: Keyboard reorder triggers `POST /api/boards/<slug>` with correct headers, conflicts surface with `409`, offline queue flushes after `fetchBoard(true)` updates the ETag.
 
-## Example 3: Sparse Bug Report
-**Scenario**: A user reports “note autosave feels slow” without detail.
-**Approach**:
-1. Review `public_html/fstore_app/templates/note.html` to confirm the autosave cadence (`update_interval = 2000` ms).
-2. Reproduce by editing a `.note` file, observing state transitions (`Pending`, `Current`, failure states) and timing.
-3. If adjustment is justified, expose the interval as a configurable constant while retaining autosave banner semantics and filename safety.
-4. Validate via browser regression checks and CLI uploads to ensure no new regressions.
-**Compliance Checks**: Maintain UX guarantees, keep dependencies unchanged, and preserve deployment alignment.
+## Example 3: Automating File Lifecycle with curl
+**Scenario**: DevOps wants to script an artefact upload, rename, download, and delete purely via shell commands.
+**Steps**:
+1. Use `curl -F file=@build.zip $BASE/api/files/upload` to upload.
+2. Rename: `curl -X POST $BASE/api/files/rename -H 'Content-Type: application/json' -d '{"old_name":"build.zip","new_name":"release.zip"}'`.
+3. Download: `curl -O $BASE/files/release.zip` (URL-encoded if needed).
+4. Delete: `curl -X POST $BASE/api/files/delete/release.zip`.
+**Checks**: Each call returns `200`, `GET /api/files` reflects state transitions, and filenames containing spaces succeed when URL encoded.
+
+## Example 4: Automation Script Respecting Idempotency
+**Scenario**: A cron job adds tasks nightly but must avoid duplicates after transient failures.
+**Steps**:
+1. Fetch `/api/boards/nightly` and capture `ETag`.
+2. POST with payload `{"op":"add","text":"Rotate logs"}` plus headers `If-Match: <etag>`, `Idempotency-Key: <uuid>`.
+3. If the job reruns with the same key (retry), the API returns the stored response without duplicating tasks.
+**Checks**: The idempotency store persists entries under `data/boards/_idempotency/nightly.json`; repeated calls with the same key return identical JSON and `ETag`.
+

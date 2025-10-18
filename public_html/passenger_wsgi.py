@@ -1,8 +1,8 @@
-import sys
 import os
+import sys
 
-# Add the app's directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'fstore_app'))
+BASE_DIR = os.path.dirname(__file__)
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 
-# Import the application object
-from app import app as application
+from fstore_app.app import app as application  # noqa: E402

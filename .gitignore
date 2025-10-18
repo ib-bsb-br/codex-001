@@ -1,2 +1,6 @@
-# Ignore user-uploaded files
-public_html/fstore_app/data/
+__pycache__/
+*.pyc
+.pytest_cache/
+playwright-report/
+test-results/
+.playwright/

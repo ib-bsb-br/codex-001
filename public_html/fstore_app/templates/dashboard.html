@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="manifest" href="{{ url_for('web_manifest') }}">
+    <link rel="icon" href="{{ url_for('favicon') }}" type="image/svg+xml">
+    <meta name="theme-color" content="#111111">
+    <title>FStore Collaborative Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css', v=asset_version) }}">
+  </head>
+  <body class="layout">
+    <header class="global-bar" role="banner">
+      <div class="global-bar__left">
+        <strong>FStore Hub</strong>
+        <nav aria-label="Primary">
+          <button type="button" class="nav-tab is-active" data-target="files" id="files-tab">Files</button>
+          <button type="button" class="nav-tab" data-target="boards" id="boards-tab">Boards</button>
+        </nav>
+      </div>
+      <div class="global-bar__right">
+        <a href="{{ url_for('api_reference') }}" class="link">Automation &amp; CLI</a>
+      </div>
+    </header>
+
+    <main class="panels" role="main">
+      <section id="panel-files" class="panel is-active" aria-labelledby="files-tab" data-panel="files">
+        <div id="file-app" data-origin="{{ origin }}" data-files='{{ files | tojson }}'>
+          <header class="panel-header">
+            <h1>Shared Files</h1>
+            <div class="panel-actions">
+              <label class="button" for="file-input">Upload</label>
+              <input id="file-input" type="file" name="file" multiple hidden>
+              <button type="button" class="button" id="new-note">New note</button>
+              <button type="button" class="button secondary" id="refresh-files">Refresh</button>
+            </div>
+          </header>
+
+          <div class="drop-zone" id="drop-zone" tabindex="0" aria-label="Drop files to upload">
+            Drag and drop files here or use the upload button.
+          </div>
+
+          <div class="files-status" id="files-status" aria-live="polite"></div>
+
+          <table class="files-table" id="files-table">
+            <thead>
+              <tr>
+                <th scope="col">Filename</th>
+                <th scope="col">Modified</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for file in files %}
+              <tr data-name="{{ file.name }}">
+                <td><a href="{{ url_for('download_file', filename=file.name) }}" class="file-link">{{ file.name }}</a></td>
+                <td>{{ file.mod_time_str }}</td>
+                <td class="actions">
+                  <button type="button" class="action" data-action="open">Open</button>
+                  <button type="button" class="action" data-action="rename">Rename</button>
+                  <button type="button" class="action warn" data-action="delete">Delete</button>
+                  {% if file.name.endswith('.note') %}
+                  <a class="action" data-action="edit" href="{{ url_for('edit_note', filename=file.name) }}">Edit note</a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="panel-boards" class="panel" aria-labelledby="boards-tab" data-panel="boards">
+        <div class="wrap" data-board-slug="{{ board_slug }}" data-origin="{{ origin }}">
+          <div class="toolbar">
+            <div class="row" style="flex:1;gap:.5rem">
+              <span class="small pill">Board</span>
+              <input id="slug" type="text" value="{{ board_slug }}" aria-label="Board slug" style="max-width:240px" list="boards">
+              <datalist id="boards"></datalist>
+              <button class="secondary" id="switch" title="Open board by slug">Open</button>
+              <button class="secondary" id="newBoard" title="Create a new random board">New</button>
+            </div>
+            <div class="row right">
+              <span class="small">Shortcuts: <span class="kbd">Enter</span> add/edit, <span class="kbd">Esc</span> cancel, <span class="kbd">Ctrl</span>+<span class="kbd">/</span> focus</span>
+            </div>
+          </div>
+
+          <div id="offline" class="offline" role="status" aria-live="polite">You are offline. Changes will queue and sync when back online.</div>
+
+          <div class="box" aria-label="Todo app">
+            <div class="row" style="margin-bottom:.6rem">
+              <input id="title" type="text" value="My Todo" aria-label="List title" title="Title (Enter to save, Esc to cancel)">
+              <button id="saveTitle" class="secondary" title="Save title">Save title</button>
+              <button id="toggleAll" class="secondary" title="Toggle all tasks">Complete all</button>
+              <button id="clearDone" class="secondary" title="Remove completed tasks">Clear completed</button>
+              <button id="clearAll" class="warn" title="Remove all tasks">Clear all</button>
+            </div>
+
+            <div class="row" style="margin-bottom:.6rem">
+              <input id="newtodo" type="text" placeholder="Add a task" autofocus aria-label="New task">
+              <button id="add">Add</button>
+              <input id="search" type="search" placeholder="Search" aria-label="Search tasks" style="max-width:240px">
+              <div class="chips" role="tablist" aria-label="Filter tasks">
+                <button class="chip active" data-filter="all" role="tab" aria-selected="true">All</button>
+                <button class="chip" data-filter="active" role="tab" aria-selected="false">Active</button>
+                <button class="chip" data-filter="done" role="tab" aria-selected="false">Completed</button>
+              </div>
+            </div>
+
+            <ul id="list" aria-live="polite"></ul>
+
+            <div class="meta">
+              <div>
+                <span class="small">Share this board URL:</span>
+                <input id="shareUrl" type="text" readonly style="max-width:380px" aria-label="Share URL">
+                <button class="secondary" id="copy">Copy</button>
+                <span class="small count" id="counts"></span>
+              </div>
+              <span class="small right" id="updated"></span>
+            </div>
+
+            <div class="meta">
+              <div class="status small" id="status" aria-live="polite"></div>
+              <button id="undo" class="secondary" style="display:none">Undo</button>
+              <span class="sr" id="srmsg" aria-live="polite"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script defer src="{{ url_for('static', filename='dashboard.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='files.js', v=asset_version) }}"></script>
+    <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
+  </body>
+</html>
